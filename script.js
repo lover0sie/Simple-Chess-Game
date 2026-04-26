@@ -41,6 +41,7 @@ $("joinRoomBtn").onclick = joinRoom;
 $("copyRoomBtn").onclick = copyRoomCode;
 $("leaveBtn").onclick = resetToSetup;
 $("newGameBtn").onclick = resetToSetup;
+$("returnMainBtn").onclick = resetToSetup;
 $("requestUndoBtn").onclick = requestUndo;
 $("acceptUndoBtn").onclick = acceptUndo;
 $("rejectUndoBtn").onclick = rejectUndo;
@@ -54,11 +55,12 @@ function switchMode(mode) {
 }
 
 async function createRoom() {
-  myName = $("hostNameInput").value.trim() || "White Player";
-  mySide = "w";
+  mySide = $("hostSideSelect").value;
+  myName = $("hostNameInput").value.trim() || `${sideName(mySide)} Player`;
   roomId = makeRoomCode();
   roomRef = doc(db, "chessRooms", roomId);
   const baseTime = Number($("timerSelect").value);
+  const hostIsWhite = mySide === "w";
 
   await setDoc(roomRef, {
     roomId,
@@ -67,8 +69,8 @@ async function createRoom() {
     fen: new Chess().fen(),
     history: [],
     recentMove: null,
-    whiteName: myName,
-    blackName: "Waiting...",
+    whiteName: hostIsWhite ? myName : "Waiting...",
+    blackName: hostIsWhite ? "Waiting..." : myName,
     whiteRemaining: baseTime,
     blackRemaining: baseTime,
     baseTime,
@@ -79,6 +81,7 @@ async function createRoom() {
     whiteScore: 0,
     blackScore: 0,
     undoRequest: null,
+    resultReason: "",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
@@ -87,7 +90,6 @@ async function createRoom() {
 }
 
 async function joinRoom() {
-  myName = $("guestNameInput").value.trim() || "Black Player";
   roomId = $("roomCodeInput").value.trim().toUpperCase();
   if (!roomId) return alert("Please enter a room code.");
 
@@ -96,13 +98,18 @@ async function joinRoom() {
   if (!snap.exists()) return alert("Room not found.");
 
   const data = snap.data();
-  if (data.blackName && data.blackName !== "Waiting...") {
+  const whiteOpen = !data.whiteName || data.whiteName === "Waiting...";
+  const blackOpen = !data.blackName || data.blackName === "Waiting...";
+
+  if (!whiteOpen && !blackOpen) {
     return alert("This room already has two players.");
   }
 
-  mySide = "b";
+  mySide = whiteOpen ? "w" : "b";
+  myName = $("guestNameInput").value.trim() || `${sideName(mySide)} Player`;
+
   await updateDoc(roomRef, {
-    blackName: myName,
+    [mySide === "w" ? "whiteName" : "blackName"]: myName,
     status: "playing",
     turnStartedAt: serverTimestamp(),
     updatedAt: serverTimestamp()
@@ -218,6 +225,7 @@ async function handleSquareClick(squareName) {
   const scores = calculateScores(captured.capturedWhite, captured.capturedBlack);
   const nextStatus = game.game_over() ? "finished" : "playing";
   const resultMessage = getResultMessage();
+  const resultReason = game.in_checkmate() ? "checkmate" : game.in_draw() ? "draw" : "";
   const newHistory = [...(state.history || []), move.san];
 
   await updateDoc(roomRef, {
@@ -232,6 +240,7 @@ async function handleSquareClick(squareName) {
     blackScore: scores.blackScore,
     status: nextStatus,
     resultMessage,
+    resultReason,
     undoRequest: null,
     turnStartedAt: serverTimestamp(),
     updatedAt: serverTimestamp()
@@ -249,6 +258,20 @@ function setMessage(text) { $("messageText").textContent = text; }
 function hideUndoPopup() {
   $("undoRequestBox").classList.add("hidden");
   $("undoActions").classList.add("hidden");
+}
+
+function hideGameOverPopup() {
+  $("gameOverBox").classList.add("hidden");
+}
+
+function renderGameOverPopup() {
+  if (state.resultReason !== "checkmate") {
+    hideGameOverPopup();
+    return;
+  }
+
+  $("gameOverText").textContent = state.resultMessage || "Game finished by checkmate.";
+  $("gameOverBox").classList.remove("hidden");
 }
 
 function renderHistory() {
@@ -271,6 +294,7 @@ function renderStatus() {
     $("turnText").textContent = "Waiting for opponent";
     $("messageText").textContent = "Share the room code with your friend.";
     hideUndoPopup();
+    hideGameOverPopup();
     return;
   }
 
@@ -278,8 +302,11 @@ function renderStatus() {
     $("turnText").textContent = "Game Over";
     $("messageText").textContent = state.resultMessage || "Game finished.";
     hideUndoPopup();
+    renderGameOverPopup();
     return;
   }
+
+  hideGameOverPopup();
 
   const pendingUndo = hasPendingUndo();
 
@@ -519,8 +546,9 @@ function iconsFromCaptured(list = []) {
 
 function getResultMessage() {
   if (game.in_checkmate()) {
-    const winner = game.turn() === "w" ? state.blackName : state.whiteName;
-    return `${winner} wins by checkmate.`;
+    const winnerSide = game.turn() === "w" ? "Black" : "White";
+    const winnerName = winnerSide === "White" ? state.whiteName : state.blackName;
+    return `${winnerSide} ${winnerName} wins by checkmate.`;
   }
   if (game.in_draw()) return "The game ended in a draw.";
   return "";
@@ -528,6 +556,10 @@ function getResultMessage() {
 
 function makeRoomCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
+function sideName(side) {
+  return side === "w" ? "White" : "Black";
 }
 
 async function copyRoomCode() {

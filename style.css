@@ -300,7 +300,7 @@ button:disabled {
 .board-wrap {
   display: flex;
   justify-content: center;
-  overflow-x: auto;
+  overflow: hidden;
   padding: 10px;
   background: #e2e8f0;
   border-radius: 18px;
@@ -309,8 +309,10 @@ button:disabled {
 
 .board {
   display: grid;
-  grid-template-columns: repeat(8, minmax(46px, 76px));
-  grid-template-rows: repeat(8, minmax(46px, 76px));
+  width: min(100%, 628px);
+  aspect-ratio: 1;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
   border: 10px solid #334155;
   border-radius: 14px;
   overflow: hidden;
@@ -330,7 +332,7 @@ button:disabled {
 .dark { background: var(--dark-square); }
 
 .piece {
-  font-size: clamp(34px, 7vw, 56px);
+  font-size: clamp(24px, 9vw, 56px);
   line-height: 1;
   transform: translateY(1px);
 }
@@ -407,7 +409,8 @@ button:disabled {
   max-width: 220px;
 }
 
-.undo-modal {
+.undo-modal,
+.game-over-modal {
   position: fixed;
   inset: 0;
   z-index: 20;
@@ -418,7 +421,8 @@ button:disabled {
   backdrop-filter: blur(6px);
 }
 
-.undo-card {
+.undo-card,
+.game-over-card {
   width: min(430px, 100%);
   background: #fff;
   border: 1px solid rgba(148, 163, 184, .45);
@@ -428,7 +432,8 @@ button:disabled {
   box-shadow: 0 24px 70px rgba(15, 23, 42, .24);
 }
 
-.undo-icon {
+.undo-icon,
+.game-over-icon {
   width: 52px;
   height: 52px;
   margin: 0 auto 12px;
@@ -441,14 +446,42 @@ button:disabled {
   font-weight: 900;
 }
 
-.undo-card h2 {
+.undo-card h2,
+.game-over-card h2 {
   margin: 0 0 8px;
   font-size: 24px;
 }
 
-.undo-card p {
+.undo-card p,
+.game-over-card p {
   color: var(--text);
   line-height: 1.45;
+}
+
+.game-over-modal {
+  z-index: 30;
+}
+
+.game-over-card {
+  border-top: 5px solid var(--primary);
+}
+
+.game-over-icon {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.game-over-kicker {
+  color: var(--primary-dark) !important;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+#returnMainBtn {
+  margin-top: 18px;
 }
 
 .undo-hint {
@@ -487,13 +520,133 @@ button:disabled {
 .moves li { padding: 3px 0; }
 
 @media (max-width: 780px) {
-  .app { margin: 10px auto; }
+  body { background: #f3f6fb; }
+  .app {
+    width: 100%;
+    margin: 0 auto;
+    padding: 8px;
+  }
   .panel,
-  .game { padding: 14px; }
+  .game {
+    padding: 12px;
+    border-radius: 16px;
+  }
+  .setup { margin: 18px auto; }
+  .brand { align-items: flex-start; }
+  .logo {
+    width: 46px;
+    height: 46px;
+    font-size: 28px;
+    border-radius: 12px;
+  }
+  h1 { font-size: 25px; }
+  .roombar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 10px;
+  }
+  .roombar div {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+  .roombar strong {
+    font-size: 22px;
+    letter-spacing: 3px;
+  }
   .topbar,
   .captured-row { grid-template-columns: 1fr; }
-  .controls,
-  .undo-actions { grid-template-columns: 1fr; }
+  .status { order: -1; }
+  .player-card,
+  .status {
+    padding: 11px 12px;
+    border-radius: 14px;
+  }
+  .player-card h2 {
+    margin-top: 6px;
+    font-size: 17px;
+  }
+  .player-card strong {
+    margin-top: 5px;
+    font-size: 24px;
+  }
+  #turnText { font-size: 18px; }
+  #messageText { font-size: 14px; }
+  .you-are {
+    margin-top: 8px;
+    font-size: 12px;
+  }
+  .board-wrap {
+    padding: 6px;
+    border-radius: 14px;
+  }
+  .board {
+    border-width: 6px;
+    border-radius: 10px;
+  }
+  .coord-file,
+  .coord-rank {
+    font-size: 9px;
+  }
+  .coord-file {
+    right: 4px;
+    bottom: 3px;
+  }
+  .coord-rank {
+    left: 4px;
+    top: 3px;
+  }
+  .captured-row {
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .captured-row div {
+    min-height: 38px;
+    padding: 9px 10px;
+    font-size: 14px;
+  }
+  .controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .controls button {
+    padding-inline: 8px;
+    font-size: 14px;
+  }
+  .undo-modal,
+  .game-over-modal {
+    padding: 12px;
+    align-items: end;
+  }
+  .undo-card,
+  .game-over-card {
+    padding: 20px 16px;
+    border-radius: 18px 18px 14px 14px;
+  }
+  .undo-card h2,
+  .game-over-card h2 { font-size: 21px; }
+  .undo-icon,
+  .game-over-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 27px;
+  }
+  .undo-actions { grid-template-columns: 1fr 1fr; }
+  .moves {
+    margin-top: 12px;
+    padding: 12px;
+    max-height: 150px;
+  }
   .moves ol { columns: 1; }
   .roombar { flex-wrap: wrap; }
+}
+
+@media (max-width: 380px) {
+  .controls,
+  .undo-actions {
+    grid-template-columns: 1fr;
+  }
+  .piece {
+    font-size: clamp(22px, 8vw, 34px);
+  }
 }
