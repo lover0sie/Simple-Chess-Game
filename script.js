@@ -71,6 +71,7 @@ async function createRoom() {
     recentMove: null,
     whiteName: hostIsWhite ? myName : "Waiting...",
     blackName: hostIsWhite ? "Waiting..." : myName,
+    hostSide: mySide,
     whiteRemaining: baseTime,
     blackRemaining: baseTime,
     baseTime,
@@ -98,18 +99,19 @@ async function joinRoom() {
   if (!snap.exists()) return alert("Room not found.");
 
   const data = snap.data();
-  const whiteOpen = !data.whiteName || data.whiteName === "Waiting...";
-  const blackOpen = !data.blackName || data.blackName === "Waiting...";
+  const hostSide = data.hostSide || (isOpenPlayerSlot(data.whiteName) ? "b" : "w");
+  const joinSide = hostSide === "w" ? "b" : "w";
+  const joinNameField = joinSide === "w" ? "whiteName" : "blackName";
 
-  if (!whiteOpen && !blackOpen) {
+  if (data.status !== "waiting" || !isOpenPlayerSlot(data[joinNameField])) {
     return alert("This room already has two players.");
   }
 
-  mySide = whiteOpen ? "w" : "b";
+  mySide = joinSide;
   myName = $("guestNameInput").value.trim() || `${sideName(mySide)} Player`;
 
   await updateDoc(roomRef, {
-    [mySide === "w" ? "whiteName" : "blackName"]: myName,
+    [joinNameField]: myName,
     status: "playing",
     turnStartedAt: serverTimestamp(),
     updatedAt: serverTimestamp()
@@ -560,6 +562,10 @@ function makeRoomCode() {
 
 function sideName(side) {
   return side === "w" ? "White" : "Black";
+}
+
+function isOpenPlayerSlot(name) {
+  return !name || String(name).trim().toLowerCase().startsWith("waiting");
 }
 
 async function copyRoomCode() {
