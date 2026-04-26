@@ -41,9 +41,9 @@ $("joinRoomBtn").onclick = joinRoom;
 $("copyRoomBtn").onclick = copyRoomCode;
 $("leaveBtn").onclick = resetToSetup;
 $("newGameBtn").onclick = resetToSetup;
-$("undoRequestBtn").onclick = requestUndo;
-$("acceptUndoBtn").onclick = acceptUndo;
 $("surrenderBtn").onclick = surrender;
+$("acceptUndoBtn").onclick = acceptUndo;
+$("rejectUndoBtn").onclick = rejectUndo;
 
 function switchMode(mode) {
   $("createBox").classList.toggle("hidden", mode !== "create");
@@ -77,7 +77,7 @@ async function createRoom() {
     capturedBlack: [],
     whiteScore: 0,
     blackScore: 0,
-    undoRequestedBy: "",
+    undoRequest: null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
@@ -257,58 +257,86 @@ function renderStatus() {
   $("whiteCard").classList.toggle("active-player", state.status === "playing" && game.turn() === "w");
   $("blackCard").classList.toggle("active-player", state.status === "playing" && game.turn() === "b");
 
-  $("acceptUndoBtn").classList.toggle("hidden", !(state.undoRequestedBy && state.undoRequestedBy !== mySide && state.status === "playing"));
   $("newGameBtn").classList.toggle("hidden", state.status !== "finished");
   $("surrenderBtn").disabled = state.status !== "playing";
-  $("undoRequestBtn").disabled = state.status !== "playing";
 
   if (state.status === "waiting") {
     $("turnText").textContent = "Waiting for opponent";
     $("messageText").textContent = "Share the room code with your friend.";
+    $("undoRequestBox").classList.add("hidden");
     return;
   }
+
   if (state.status === "finished") {
     $("turnText").textContent = "Game Over";
     $("messageText").textContent = state.resultMessage || "Game finished.";
+    $("undoRequestBox").classList.add("hidden");
     return;
   }
-  if (state.undoRequestedBy) {
-    const who = state.undoRequestedBy === "w" ? state.whiteName : state.blackName;
-    $("messageText").textContent = `${who} requested undo.`;
+
+  const hasPendingUndo =
+    state.undoRequest &&
+    state.undoRequest.status === "pending";
+
+  const isOpponentRequest =
+    hasPendingUndo && state.undoRequest.requestedBy !== mySide;
+
+  $("undoRequestBox").classList.toggle("hidden", !isOpponentRequest);
+
+  if (isOpponentRequest) {
+    const requester =
+      state.undoRequest.requestedBy === "w"
+        ? state.whiteName
+        : state.blackName;
+
+    $("undoRequestText").textContent =
+      `${requester} requested to undo the previous move.`;
+  }
+
+  $("requestUndoBtn").disabled = state.status !== "playing" || hasPendingUndo;
+
+  if (hasPendingUndo && !isOpponentRequest) {
+    $("messageText").textContent = "Undo request sent. Waiting for opponent.";
   } else {
     $("messageText").textContent = game.in_check() ? "Check!" : "Select a piece to move.";
   }
+
   const currentPlayer = game.turn() === "w" ? state.whiteName : state.blackName;
   $("turnText").textContent = `${currentPlayer} to move`;
 }
 
 async function requestUndo() {
-  if (!state || state.status !== "playing") return;
-  if (!(state.history || []).length) return alert("No moves to undo.");
-  await updateDoc(roomRef, { undoRequestedBy: mySide, updatedAt: serverTimestamp() });
-  alert("Undo request sent. Your friend must accept it.");
+  if (!roomRef || !mySide || state.status !== "playing") return;
+
+  await updateDoc(roomRef, {
+    undoRequest: {
+      requestedBy: mySide,
+      status: "pending",
+      requestedAt: Date.now()
+    },
+    updatedAt: serverTimestamp()
+  });
 }
 
 async function acceptUndo() {
-  if (!state || state.status !== "playing") return;
-  if (!state.undoRequestedBy || state.undoRequestedBy === mySide) return;
-  const temp = new Chess();
-  const moves = [...(state.history || [])];
-  moves.pop();
-  moves.forEach(m => temp.move(m));
-  const captured = buildCaptured(new Chess(), temp);
-  const scores = calculateScores(captured.capturedWhite, captured.capturedBlack);
+  if (!roomRef || !state.undoRequest) return;
+
+  game.undo();
+
   await updateDoc(roomRef, {
-    fen: temp.fen(),
-    history: temp.history(),
+    fen: game.fen(),
+    history: game.history(),
+    turn: game.turn(),
     recentMove: null,
-    turn: temp.turn(),
-    capturedWhite: captured.capturedWhite,
-    capturedBlack: captured.capturedBlack,
-    whiteScore: scores.whiteScore,
-    blackScore: scores.blackScore,
-    undoRequestedBy: "",
-    turnStartedAt: serverTimestamp(),
+    undoRequest: null,
+    updatedAt: serverTimestamp()
+  });
+}
+
+
+async function rejectUndo() {
+  await updateDoc(roomRef, {
+    undoRequest: null,
     updatedAt: serverTimestamp()
   });
 }

@@ -90,11 +90,17 @@
       </div>
 
       <div class="controls">
-        <button id="undoRequestBtn" class="btn-secondary">Request Undo</button>
-        <button id="acceptUndoBtn" class="btn-secondary hidden">Accept Undo</button>
+        <button id="requestUndoBtn" class="btn-secondary">Request Undo</button>
         <button id="surrenderBtn" class="btn-danger">Surrender</button>
         <button id="newGameBtn" class="btn-secondary hidden">Back to First Page</button>
       </div>
+
+      <div id="undoRequestBox" class="undo-request hidden">
+        <p id="undoRequestText"></p>
+        <button id="acceptUndoBtn" class="btn-secondary">Accept</button>
+        <button id="rejectUndoBtn" class="btn-danger">Reject</button>
+      </div>
+
 
       <div class="moves">
         <h3>Move History</h3>
