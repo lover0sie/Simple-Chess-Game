@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Online Chess Game</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <section class="panel setup" id="setupPanel">
+      <div class="brand">
+        <div class="logo">♟</div>
+        <div>
+          <h1>Online Chess</h1>
+          <p>Play with a friend from another PC using a room code.</p>
+        </div>
+      </div>
+
+      <div class="mode-tabs">
+        <button id="showCreateBtn" class="tab active">Create Room</button>
+        <button id="showJoinBtn" class="tab">Join Room</button>
+      </div>
+
+      <div id="createBox" class="setup-box">
+        <label>Your Name</label>
+        <input id="hostNameInput" placeholder="Enter your name" />
+
+        <label>Timer</label>
+        <select id="timerSelect">
+          <option value="300">5 minutes</option>
+          <option value="900" selected>15 minutes</option>
+          <option value="1800">30 minutes</option>
+        </select>
+
+        <button id="createRoomBtn">Create Room as White</button>
+      </div>
+
+      <div id="joinBox" class="setup-box hidden">
+        <label>Your Name</label>
+        <input id="guestNameInput" placeholder="Enter your name" />
+
+        <label>Room Code</label>
+        <input id="roomCodeInput" placeholder="Example: AB12CD" maxlength="6" />
+
+        <button id="joinRoomBtn">Join Room as Black</button>
+      </div>
+
+      <div class="note">
+      </div>
+    </section>
+
+    <section class="game hidden" id="gamePanel">
+      <div class="roombar">
+        <div>
+          <span class="muted">Room Code</span>
+          <strong id="roomCodeText">------</strong>
+        </div>
+        <button id="copyRoomBtn" class="small-btn">Copy Code</button>
+        <button id="leaveBtn" class="small-btn danger-outline">Leave</button>
+      </div>
+
+      <div class="topbar">
+        <div class="player-card white-card" id="whiteCard">
+          <div class="player-top"><span>White</span><span id="whiteScore">0 pts</span></div>
+          <h2 id="whiteName">Waiting...</h2>
+          <strong id="whiteTimer">15:00</strong>
+        </div>
+
+        <div class="status">
+          <div id="turnText">Waiting for opponent</div>
+          <div id="messageText">Share the room code with your friend.</div>
+          <div class="you-are" id="youAreText">You are White</div>
+        </div>
+
+        <div class="player-card black-card" id="blackCard">
+          <div class="player-top"><span>Black</span><span id="blackScore">0 pts</span></div>
+          <h2 id="blackName">Waiting...</h2>
+          <strong id="blackTimer">15:00</strong>
+        </div>
+      </div>
+
+      <div class="board-wrap">
+        <div id="board" class="board"></div>
+      </div>
+
+      <div class="captured-row">
+        <div><b>White captured:</b> <span id="whiteCaptured">-</span></div>
+        <div><b>Black captured:</b> <span id="blackCaptured">-</span></div>
+      </div>
+
+      <div class="controls">
+        <button id="undoRequestBtn" class="btn-secondary">Request Undo</button>
+        <button id="acceptUndoBtn" class="btn-secondary hidden">Accept Undo</button>
+        <button id="surrenderBtn" class="btn-danger">Surrender</button>
+        <button id="newGameBtn" class="btn-secondary hidden">Back to First Page</button>
+      </div>
+
+      <div class="moves">
+        <h3>Move History</h3>
+        <ol id="moveList"></ol>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <script type="module" src="script.js"></script>
+</body>
+</html>
