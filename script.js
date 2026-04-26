@@ -9,8 +9,8 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const pieceIcons = {
-  p: "♟", r: "♜", n: "♞", b: "♝", q: "♛", k: "♚",
-  P: "♙", R: "♖", N: "♘", B: "♗", Q: "♕", K: "♔"
+  p: "\u265F\uFE0E", r: "\u265C\uFE0E", n: "\u265E\uFE0E", b: "\u265D\uFE0E", q: "\u265B\uFE0E", k: "\u265A\uFE0E",
+  P: "\u2659\uFE0E", R: "\u2656\uFE0E", N: "\u2658\uFE0E", B: "\u2657\uFE0E", Q: "\u2655\uFE0E", K: "\u2654\uFE0E"
 };
 const pieceValue = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
@@ -176,10 +176,9 @@ function renderBoard() {
 
       const piece = game.get(squareName);
       if (piece) {
-        const key = piece.color === "w" ? piece.type.toUpperCase() : piece.type;
         const pieceSpan = document.createElement("span");
-        pieceSpan.className = `piece ${piece.color === "w" ? "white-piece" : "black-piece"}`;
-        pieceSpan.textContent = pieceIcons[key];
+        pieceSpan.className = "piece";
+        pieceSpan.innerHTML = getPieceSvg(piece);
         square.appendChild(pieceSpan);
       }
 
@@ -256,6 +255,74 @@ function selectSquare(squareName) {
 }
 function clearSelection() { selectedSquare = null; possibleMoves = []; renderBoard(); }
 function setMessage(text) { $("messageText").textContent = text; }
+
+function getPieceSvg(piece) {
+  const isWhite = piece.color === "w";
+  const isBlack = !isWhite;
+  const fill = isWhite ? "#fffdf0" : "#161d15";
+  const stroke = isWhite ? "#b8ae78" : "#9d9663";
+  const detail = isWhite ? "#b8ae78" : "#9d9663";
+  const eye = isWhite ? "#b8ae78" : "#fffdf0";
+  const shapes = {
+    p: `
+      <circle cx="32" cy="17" r="7.5"/>
+      <path d="M24.5 30.5c0-5 3.2-8.5 7.5-8.5s7.5 3.5 7.5 8.5v7h-15z"/>
+      <path d="M22 38.5h20v6H22z"/>
+      <path d="M17.5 45h29l4.5 8.5H13z"/>
+      <path class="piece-detail" d="M21 49.5h22"/>
+    `,
+    r: `
+      <path d="M17 12h8v6h5v-6h4v6h5v-6h8v13H17z"/>
+      <path d="M21.5 25h21v19.5h-21z"/>
+      <path d="M18.5 44.5h27l5.5 9H13z"/>
+      <path class="piece-detail" d="M23 31h18M23 38h18"/>
+    `,
+    n: `
+      <path d="M17 52.5h31.5l-4.8-7.8H25.2c4.2-7.7 7-15.6 4.9-23.8-1.2-4.6-.3-9.2 2.4-13.4-9.4 5.7-15.1 14.5-14.2 25.2.3 4 1.5 7.4 3.1 10.7L17 52.5z"/>
+      <path d="M29 14.8c3.4 4.8 8.5 7.7 15.2 10.1 4.1 1.5 6.3 4.2 6.5 7.8.2 3.9-2.8 5.9-6 5.3-5.2-.9-9.7-4.4-14-8.5 6.2 11.7 8.2 18.4-.8 23H18.7c6.9-9.6 8.2-17.5 5.8-25.8-1.5-5.2-.3-9.3 4.5-11.9z"/>
+      <path d="M17.5 52.5h32.5v4.5H14.5c0-2.4 1.1-4.5 3-4.5z"/>
+      <path d="M21.8 44.4h23.3c1.4 0 2.5 1.1 2.5 2.5s-1.1 2.5-2.5 2.5H20.5c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 3.8-2.5z"/>
+      <path class="piece-detail" d="${isBlack ? "M22.2 14.1c-6.7 8.5-8.1 18-4.2 28.4" : "M27.5 9.3c-7.8 8.2-9.9 18.2-5.8 29.8"}"/>
+      <path class="piece-detail" d="M31.6 27.2c4.7 2.6 9.7 3 14.8 1.5"/>
+      <circle cx="39.9" cy="22.9" r="1.3" fill="${eye}" stroke="none"/>
+    `,
+    b: `
+      <rect x="27" y="6.5" width="10" height="4.8" rx="2.4"/>
+      <path d="M31.5 11.5c-5.7 7.3-9.2 12.1-9.2 18.4 0 6.8 4.3 11.4 9.7 13.8 5.4-2.4 9.7-7 9.7-13.8 0-6.3-3.5-11.1-9.2-18.4z"/>
+      <path d="M28.8 43.5h6.4l1.8 12H27z"/>
+      <path d="M22.2 47h19.6v4.8H22.2z"/>
+      <path d="M19.5 51.8h25v4.8h-25z"/>
+      <path d="M16.5 56.6h31l5.3 6.3H11.2z"/>
+      <path d="M13.5 62.9h37v3.8h-37z"/>
+      <path class="piece-detail" d="${isBlack ? "M26.3 20.5c-4.3 6.2-4.7 11.8-1.4 16.8" : "M26.2 20.5c-4.3 6.2-4.8 11.7-1.6 16.3"}"/>
+      <path class="piece-detail" d="${isWhite ? "M24.6 33.8c.7 1.6 1.6 2.9 2.8 3.9" : ""}"/>
+    `,
+    q: `
+      <circle cx="15.5" cy="18.5" r="4.7"/>
+      <circle cx="24.5" cy="13.2" r="4.7"/>
+      <circle cx="32" cy="11" r="4.7"/>
+      <circle cx="39.5" cy="13.2" r="4.7"/>
+      <circle cx="48.5" cy="18.5" r="4.7"/>
+      <path d="M16 24l6.5 19h19L48 24 38.5 34.5 32 19 25.5 34.5z"/>
+      <path d="M18 44.5h28l5 9H13z"/>
+      <path class="piece-detail" d="M23 42.5h18"/>
+    `,
+    k: `
+      <path d="M29 8h6v8.5h8.5v6H35V31h-6v-8.5h-8.5v-6H29z"/>
+      <path d="M22.5 34c0-5.6 4.2-9 9.5-9s9.5 3.4 9.5 9v10.5h-19z"/>
+      <path d="M18 44.5h28l5 9H13z"/>
+      <path class="piece-detail" d="M24.5 38h15"/>
+    `
+  };
+
+  return `
+    <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false" class="${isWhite ? "white-svg-piece" : "black-svg-piece"}">
+      <g fill="${fill}" stroke="${stroke}" stroke-width="${piece.type === "n" || piece.type === "b" ? "2.2" : "2.8"}" stroke-linejoin="round" stroke-linecap="round" style="--piece-detail:${detail};--piece-eye:${eye}">
+        ${shapes[piece.type]}
+      </g>
+    </svg>
+  `;
+}
 
 function hideUndoPopup() {
   $("undoRequestBox").classList.add("hidden");

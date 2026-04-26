@@ -332,19 +332,43 @@ button:disabled {
 .dark { background: var(--dark-square); }
 
 .piece {
-  font-size: clamp(24px, 9vw, 56px);
-  line-height: 1;
-  transform: translateY(1px);
+  width: 78%;
+  height: 78%;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  filter: drop-shadow(0 5px 8px rgba(15, 23, 42, .24));
 }
 
-.white-piece {
-  color: #fff;
-  text-shadow: 0 2px 0 #111827, 1px 0 0 #111827, -1px 0 0 #111827, 0 -1px 0 #111827, 0 5px 10px rgba(0, 0, 0, .35);
+.piece svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
-.black-piece {
-  color: #000;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, .52), 0 5px 10px rgba(0, 0, 0, .25);
+.piece-detail {
+  fill: none;
+  opacity: .78;
+}
+
+.piece-eye {
+  stroke: none;
+}
+
+.white-svg-piece .piece-detail {
+  stroke: var(--piece-detail);
+}
+
+.black-svg-piece .piece-detail {
+  stroke: var(--piece-detail);
+}
+
+.white-svg-piece .piece-eye {
+  fill: var(--piece-eye);
+}
+
+.black-svg-piece .piece-eye {
+  fill: var(--piece-eye);
 }
 
 .selected { background: var(--selected) !important; }
@@ -646,7 +670,5 @@ button:disabled {
   .undo-actions {
     grid-template-columns: 1fr;
   }
-  .piece {
-    font-size: clamp(22px, 8vw, 34px);
-  }
+  .piece { width: 74%; height: 74%; }
 }
