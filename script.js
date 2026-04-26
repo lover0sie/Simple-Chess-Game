@@ -41,9 +41,10 @@ $("joinRoomBtn").onclick = joinRoom;
 $("copyRoomBtn").onclick = copyRoomCode;
 $("leaveBtn").onclick = resetToSetup;
 $("newGameBtn").onclick = resetToSetup;
-$("surrenderBtn").onclick = surrender;
+$("requestUndoBtn").onclick = requestUndo;
 $("acceptUndoBtn").onclick = acceptUndo;
 $("rejectUndoBtn").onclick = rejectUndo;
+$("surrenderBtn").onclick = surrender;
 
 function switchMode(mode) {
   $("createBox").classList.toggle("hidden", mode !== "create");
