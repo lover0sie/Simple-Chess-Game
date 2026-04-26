@@ -79,7 +79,6 @@ async function createRoom() {
     whiteScore: 0,
     blackScore: 0,
     undoRequest: null,
-    lastMoveSnapshot: null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
@@ -204,7 +203,6 @@ async function handleSquareClick(squareName) {
 
   if (squareName === selectedSquare) return clearSelection();
 
-  const before = new Chess(game.fen());
   const elapsed = getElapsedTurnSeconds();
   const move = game.move({ from: selectedSquare, to: squareName, promotion: "q" });
 
@@ -220,10 +218,11 @@ async function handleSquareClick(squareName) {
   const scores = calculateScores(captured.capturedWhite, captured.capturedBlack);
   const nextStatus = game.game_over() ? "finished" : "playing";
   const resultMessage = getResultMessage();
+  const newHistory = [...(state.history || []), move.san];
 
   await updateDoc(roomRef, {
     fen: game.fen(),
-    history: game.history(),
+    history: newHistory,
     recentMove: { from: move.from, to: move.to },
     turn: game.turn(),
     [currentRemainingField]: newRemaining,
@@ -234,15 +233,6 @@ async function handleSquareClick(squareName) {
     status: nextStatus,
     resultMessage,
     undoRequest: null,
-    lastMoveSnapshot: {
-      fen: before.fen(),
-      capturedWhite: state.capturedWhite || [],
-      capturedBlack: state.capturedBlack || [],
-      whiteScore: state.whiteScore || 0,
-      blackScore: state.blackScore || 0,
-      history: state.history || [],
-      recentMove: state.recentMove || null
-    },
     turnStartedAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
@@ -255,6 +245,11 @@ function selectSquare(squareName) {
 }
 function clearSelection() { selectedSquare = null; possibleMoves = []; renderBoard(); }
 function setMessage(text) { $("messageText").textContent = text; }
+
+function hideUndoPopup() {
+  $("undoRequestBox").classList.add("hidden");
+  $("undoActions").classList.add("hidden");
+}
 
 function renderHistory() {
   moveList.innerHTML = "";
@@ -275,14 +270,14 @@ function renderStatus() {
   if (state.status === "waiting") {
     $("turnText").textContent = "Waiting for opponent";
     $("messageText").textContent = "Share the room code with your friend.";
-    $("undoRequestBox").classList.add("hidden");
+    hideUndoPopup();
     return;
   }
 
   if (state.status === "finished") {
     $("turnText").textContent = "Game Over";
     $("messageText").textContent = state.resultMessage || "Game finished.";
-    $("undoRequestBox").classList.add("hidden");
+    hideUndoPopup();
     return;
   }
 
@@ -291,23 +286,32 @@ function renderStatus() {
   const isOpponentRequest =
     pendingUndo && state.undoRequest.requestedBy !== mySide;
 
-  $("undoRequestBox").classList.toggle("hidden", !isOpponentRequest);
+  $("undoRequestBox").classList.toggle("hidden", !pendingUndo);
+  $("undoActions").classList.toggle("hidden", !isOpponentRequest);
 
-  if (isOpponentRequest) {
+  if (pendingUndo) {
     const requester =
       state.undoRequest.requestedBy === "w"
         ? state.whiteName
         : state.blackName;
+    const moveLabel = getUndoMoveLabel(state.undoRequest.undoPlyCount);
 
+    $("undoRequestTitle").textContent = isOpponentRequest
+      ? "Undo request"
+      : "Request sent";
     $("undoRequestText").textContent =
-      `${requester} requested to undo the previous move.`;
+      isOpponentRequest
+        ? `${requester} wants to undo ${moveLabel}.`
+        : `Waiting for your opponent to respond to your request to undo ${moveLabel}.`;
+    $("undoRequestHint").textContent = isOpponentRequest
+      ? "The game clock is paused until you accept or reject."
+      : "The game clock is paused while your opponent decides.";
   }
 
   $("requestUndoBtn").disabled =
     state.status !== "playing" ||
     pendingUndo ||
-    !(state.history || []).length ||
-    !state.lastMoveSnapshot;
+    !(state.history || []).length;
 
   if (pendingUndo && !isOpponentRequest) {
     $("messageText").textContent = "Awaiting response from opponent. Timer paused.";
@@ -324,10 +328,11 @@ function renderStatus() {
 async function requestUndo() {
   if (!roomRef || !mySide || state.status !== "playing") return;
   if (hasPendingUndo()) return;
-  if (!(state.history || []).length || !state.lastMoveSnapshot) {
+  if (!(state.history || []).length) {
     return setMessage("No move is available to undo yet.");
   }
 
+  const undoPlyCount = getUndoPlyCount(mySide);
   const activeSide = state.turn === "w" ? "white" : "black";
   const activeRemainingField = activeSide === "white" ? "whiteRemaining" : "blackRemaining";
   const activeRemaining = Math.max(
@@ -339,6 +344,7 @@ async function requestUndo() {
     undoRequest: {
       requestedBy: mySide,
       status: "pending",
+      undoPlyCount,
       requestedAt: Date.now()
     },
     [activeRemainingField]: activeRemaining,
@@ -348,23 +354,20 @@ async function requestUndo() {
 
 async function acceptUndo() {
   if (!roomRef || !hasPendingUndo() || state.undoRequest.requestedBy === mySide) return;
-  if (!state.lastMoveSnapshot) return rejectUndo();
 
-  const restoredGame = new Chess(state.lastMoveSnapshot.fen);
-  const capturedWhite = state.lastMoveSnapshot.capturedWhite || [];
-  const capturedBlack = state.lastMoveSnapshot.capturedBlack || [];
+  const undoPlyCount = state.undoRequest.undoPlyCount || getUndoPlyCount(state.undoRequest.requestedBy);
+  const restoredState = buildStateAfterUndo(undoPlyCount);
 
   await updateDoc(roomRef, {
-    fen: restoredGame.fen(),
-    history: state.lastMoveSnapshot.history || [],
-    turn: restoredGame.turn(),
-    recentMove: state.lastMoveSnapshot.recentMove || null,
-    capturedWhite,
-    capturedBlack,
-    whiteScore: state.lastMoveSnapshot.whiteScore || 0,
-    blackScore: state.lastMoveSnapshot.blackScore || 0,
+    fen: restoredState.game.fen(),
+    history: restoredState.history,
+    turn: restoredState.game.turn(),
+    recentMove: restoredState.recentMove,
+    capturedWhite: restoredState.capturedWhite,
+    capturedBlack: restoredState.capturedBlack,
+    whiteScore: restoredState.whiteScore,
+    blackScore: restoredState.blackScore,
     undoRequest: null,
-    lastMoveSnapshot: null,
     turnStartedAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
@@ -412,6 +415,40 @@ function updateLiveTimers() {
 
 function hasPendingUndo() {
   return Boolean(state && state.undoRequest && state.undoRequest.status === "pending");
+}
+
+function getUndoPlyCount(requestedBy) {
+  const historyLength = (state.history || []).length;
+  const requestedOnOwnTurn = state.turn === requestedBy;
+  return Math.min(requestedOnOwnTurn ? 2 : 1, historyLength);
+}
+
+function getUndoMoveLabel(undoPlyCount = 1) {
+  return undoPlyCount > 1 ? "the previous two moves" : "the previous move";
+}
+
+function buildStateAfterUndo(undoPlyCount) {
+  const targetHistory = (state.history || []).slice(0, -undoPlyCount);
+  const rebuiltGame = new Chess();
+  let recentMove = null;
+
+  targetHistory.forEach((san) => {
+    const move = rebuiltGame.move(san);
+    if (move) recentMove = { from: move.from, to: move.to };
+  });
+
+  const captured = buildCaptured(new Chess(), rebuiltGame);
+  const scores = calculateScores(captured.capturedWhite, captured.capturedBlack);
+
+  return {
+    game: rebuiltGame,
+    history: rebuiltGame.history(),
+    recentMove,
+    capturedWhite: captured.capturedWhite,
+    capturedBlack: captured.capturedBlack,
+    whiteScore: scores.whiteScore,
+    blackScore: scores.blackScore
+  };
 }
 
 async function claimTimeout(w, b) {

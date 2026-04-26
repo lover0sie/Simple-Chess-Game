@@ -46,8 +46,6 @@
         <button id="joinRoomBtn">Join Room as Black</button>
       </div>
 
-      <div class="note">
-      </div>
     </section>
 
     <section class="game hidden" id="gamePanel">
@@ -95,10 +93,17 @@
         <button id="newGameBtn" class="btn-secondary hidden">Back to First Page</button>
       </div>
 
-      <div id="undoRequestBox" class="undo-request hidden">
-        <p id="undoRequestText"></p>
-        <button id="acceptUndoBtn" class="btn-secondary">Accept</button>
-        <button id="rejectUndoBtn" class="btn-danger">Reject</button>
+      <div id="undoRequestBox" class="undo-modal hidden" role="dialog" aria-modal="true" aria-labelledby="undoRequestTitle">
+        <div class="undo-card">
+          <div class="undo-icon">↶</div>
+          <h2 id="undoRequestTitle">Undo request</h2>
+          <p id="undoRequestText"></p>
+          <p id="undoRequestHint" class="undo-hint"></p>
+          <div id="undoActions" class="undo-actions">
+            <button id="acceptUndoBtn" class="btn-secondary">Accept</button>
+            <button id="rejectUndoBtn" class="btn-danger">Reject</button>
+          </div>
+        </div>
       </div>
 
 
